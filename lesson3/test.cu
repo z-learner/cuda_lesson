@@ -12,9 +12,25 @@ class GpuMatrix {
 
   const size_t ByteSize = HeightDim * WidthDim * sizeof(DataType);
 
-  GpuMatrix() = default;
+  GpuMatrix() : _owner(true) {
+    CUDA_CHECK(cudaMalloc((void**)&_data, ByteSize));
+  };
 
-  ~GpuMatrix() = default;
+  ~GpuMatrix() {
+    if (_owner) {
+      CUDA_CHECK(cudaFree(_data));
+    }
+  };
+
+  GpuMatrix(const GpuMatrix& other) {
+    _data = other._data;
+    _owner = false;
+  }
+
+  GpuMatrix& operator==(const GpuMatrix& other) {
+    _data = other._data;
+    _owner = false;
+  }
 
   bool CopyFromCpuData(const DataType* cpu_data, size_t size) {
     assert(size * sizeof(DataType) == ByteSize);
@@ -31,15 +47,6 @@ class GpuMatrix {
   }
   __device__ size_t GetByteSize() { return ByteSize; }
 
-  bool DestroyGpuMemory() {
-    CUDA_CHECK(cudaFree(_data));
-    return true;
-  }
-
-  bool MallocGpuMemory() {
-    CUDA_CHECK(cudaMalloc((void**)&_data, ByteSize));
-    return true;
-  }
   // not saft
   __device__ DataType& at(size_t y, size_t x) {
     return _data[y * WidthDim + x];
@@ -47,6 +54,7 @@ class GpuMatrix {
 
  private:
   DataType* _data;
+  bool _owner;
 };
 
 template <typename T, size_t N, size_t M, size_t Z>
@@ -100,10 +108,6 @@ int main(int argc, char** argv) {
   GpuMatrix<DataType, M, Z> matrix_b;
   GpuMatrix<DataType, N, Z> matrix_c;
 
-  matrix_a.MallocGpuMemory();
-  matrix_b.MallocGpuMemory();
-  matrix_c.MallocGpuMemory();
-
   // Copy To Gpu From Cpu
   matrix_a.CopyFromCpuData(h_a, N * M);
   matrix_b.CopyFromCpuData(h_b, M * Z);
@@ -149,10 +153,6 @@ int main(int argc, char** argv) {
   free(h_a);
   free(h_b);
   free(h_c);
-
-  matrix_a.DestroyGpuMemory();
-  matrix_b.DestroyGpuMemory();
-  matrix_c.DestroyGpuMemory();
 
   return 0;
 }
