@@ -9,7 +9,7 @@ find_package(CUDA REQUIRED)
 file(GLOB CUDA_SOURCES *.cu *.cc)
 
 # Set CUDA architecture (change to match your GPU)
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_75,code=sm_75)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS};-gencode arch=compute_86,code=sm_86)
 
 # Add your executable and link CUDA libraries
 cuda_add_executable(test ${CUDA_SOURCES})
